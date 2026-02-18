@@ -10,18 +10,12 @@ const supabase = createClient(
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'];
 const DIVISIONS = ['1', '2', '3'];
 
-// 公式に近いランクアイコンのURLマッピング
-const RANK_ICONS: { [key: string]: string } = {
-  'Iron': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/3/smallicon.png',
-  'Bronze': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/6/smallicon.png',
-  'Silver': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/9/smallicon.png',
-  'Gold': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/12/smallicon.png',
-  'Platinum': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/15/smallicon.png',
-  'Diamond': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/18/smallicon.png',
-  'Ascendant': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/21/smallicon.png',
-  'Immortal': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/24/smallicon.png',
-  'Radiant': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/27/smallicon.png',
-  'Unranked': 'https://titles.trackercdn.com/valorant-api/competitivetiers/03621f52-342b-cf4e-4f86-9350a3b05d0d/0/smallicon.png'
+// 指定URLに基づいたランク画像取得関数
+const getRankImage = (rank: string, division: string) => {
+  if (rank === 'Radiant') return "https://static.wikia.nocookie.net/valorant/images/e/ee/Radiant_Rank.png";
+  if (rank === 'Unranked') return "https://static.wikia.nocookie.net/valorant/images/a/a2/TX_CompetitiveTier_Large_0.png";
+  // 例: Iron 1 Rank.png
+  return `https://static.wikia.nocookie.net/valorant/images/${rank}_${division}_Rank.png`;
 };
 
 export default function Home() {
@@ -48,24 +42,29 @@ export default function Home() {
   }
 
   return (
-    <main className="h-screen w-screen bg-[#0f1923] text-[#ece8e1] overflow-hidden flex flex-col p-4 font-sans">
-      {/* ヘッダー */}
-      <header className="flex justify-between items-center border-b border-[#ff4655] mb-4 pb-2">
-        <h1 className="text-2xl font-black italic text-[#ff4655] uppercase tracking-tighter">VALO ランク管理ボード</h1>
-        <div className="text-[10px] text-gray-500 font-mono">RESOLUTION: 1920x1080 OPTIMIZED // LIVE</div>
+    <main className="h-screen w-screen bg-[#0f1923] text-[#ece8e1] overflow-hidden flex flex-col p-6 font-sans">
+      {/* 上部ヘッダー */}
+      <header className="flex justify-between items-center border-b-2 border-[#ff4655] mb-4 pb-4">
+        <div>
+          <h1 className="text-3xl font-black italic text-[#ff4655] uppercase tracking-tight">VALORANT リアルタイム・ランク共有ボード</h1>
+          <p className="text-[10px] text-gray-500 font-mono tracking-widest mt-1">STATUS: OPERATIONAL // 1920x1080 OPTIMIZED</p>
+        </div>
       </header>
 
-      {/* プレイヤーリスト：横に9等分して1画面に収める */}
-      <div className="flex-1 grid grid-cols-9 gap-2 h-full pb-4">
-        {players.slice(0, 9).map(player => (
-          <div key={player.id} className="bg-[#1f2326] border border-gray-800 flex flex-col items-center p-2 relative group hover:border-[#ff4655]">
+      {/* プレイヤー行リスト（9等分） */}
+      <div className="flex-1 flex flex-col gap-1 overflow-hidden pb-4">
+        {players.slice(0, 9).map((player, index) => (
+          <div key={player.id} className="flex-1 flex items-center bg-[#1f2326] border border-gray-800 hover:border-[#ff4655] px-6 transition-all group">
             
-            {/* 名前編集エリア */}
-            <div className="w-full text-center mb-4 pt-2">
+            {/* 番号 */}
+            <div className="w-12 text-gray-600 font-black italic text-xl">0{index + 1}</div>
+
+            {/* 名前 (クリックで編集) */}
+            <div className="w-64">
               {editingId === player.id ? (
                 <input
                   autoFocus
-                  className="bg-gray-800 border-b border-[#ff4655] text-sm font-bold w-full text-center outline-none"
+                  className="bg-gray-800 border-b-2 border-[#ff4655] text-xl font-bold w-full outline-none px-2 py-1"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   onBlur={() => updatePlayer(player.id, { name: tempName })}
@@ -73,54 +72,64 @@ export default function Home() {
                 />
               ) : (
                 <div 
-                  className="text-sm font-black truncate cursor-pointer hover:text-[#ff4655]"
+                  className="text-xl font-black uppercase cursor-pointer hover:text-[#ff4655] truncate flex items-center gap-2"
                   onClick={() => { setEditingId(player.id); setTempName(player.name); }}
                 >
                   {player.name}
+                  <span className="text-[10px] opacity-0 group-hover:opacity-40 transition-opacity">編集</span>
                 </div>
               )}
             </div>
 
             {/* ランク画像 */}
-            <div className="flex-1 flex flex-col items-center justify-center space-y-2">
+            <div className="w-32 flex justify-center">
               <img 
-                src={RANK_ICONS[player.rank] || RANK_ICONS['Unranked']} 
+                src={getRankImage(player.rank, player.division)} 
                 alt={player.rank}
-                className="w-20 h-20 object-contain drop-shadow-[0_0_10px_rgba(255,70,85,0.3)]"
+                className="h-16 w-16 object-contain drop-shadow-[0_0_8px_rgba(255,70,85,0.4)]"
+                onError={(e) => { (e.target as HTMLImageElement).src = RANK_ICONS['Unranked']; }}
               />
-              <div className="text-[#ff4655] font-black italic text-xs uppercase text-center">
-                {player.rank} <br/> {player.division && `DIV ${player.division}`}
+            </div>
+
+            {/* 現在のランク表示 */}
+            <div className="w-48 text-center">
+              <div className="text-[#ff4655] font-black italic text-lg uppercase tracking-wider">
+                {player.rank} {player.rank !== 'Radiant' && player.division}
               </div>
             </div>
 
-            {/* 操作パネル（ホバーで強調） */}
-            <div className="w-full space-y-3 mt-4">
-              <div className="grid grid-cols-2 gap-1">
-                {RANKS.map(r => (
-                  <button
-                    key={r}
-                    onClick={() => updatePlayer(player.id, { rank: r })}
-                    className={`text-[8px] py-1 border transition-all ${
-                      player.rank === r ? 'bg-[#ff4655] border-[#ff4655]' : 'border-gray-700 text-gray-500 hover:border-gray-400'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-              <div className="flex border-t border-gray-800 pt-2 gap-1">
-                {DIVISIONS.map(d => (
-                  <button
-                    key={d}
-                    onClick={() => updatePlayer(player.id, { division: d })}
-                    className={`flex-1 text-[9px] py-1 font-bold ${
-                      player.division === d ? 'bg-white text-black' : 'bg-gray-800 text-gray-500'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
+            {/* ランク選択ボタン群 */}
+            <div className="flex-1 flex flex-wrap gap-1 items-center justify-end px-4">
+              {RANKS.map(r => (
+                <button
+                  key={r}
+                  onClick={() => updatePlayer(player.id, { rank: r })}
+                  className={`text-[9px] px-2 py-1.5 font-bold border transition-all ${
+                    player.rank === r 
+                    ? 'bg-[#ff4655] border-[#ff4655] text-white' 
+                    : 'border-gray-700 text-gray-500 hover:border-gray-400 hover:text-white'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            {/* ディビジョン選択 */}
+            <div className="w-40 flex gap-1 justify-end">
+              {DIVISIONS.map(d => (
+                <button
+                  key={d}
+                  onClick={() => updatePlayer(player.id, { division: d })}
+                  className={`w-10 py-2 text-xs font-bold border transition-all ${
+                    player.division === d 
+                    ? 'bg-white text-black border-white' 
+                    : 'border-gray-700 text-gray-500 hover:border-gray-400'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
             </div>
           </div>
         ))}
